@@ -17,12 +17,16 @@ import com.example.iam2.repository.UserRepository;
 import com.example.iam2.service.UserService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.text.ParseException;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,6 +46,12 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserConverter userConverter;
+
+    @Autowired
+    private JwtDecoder keycloakJwtDecoder;
+
+    @Value("${iam.security.keycloak-enabled:false}")
+    private boolean keycloakEnabled;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -68,25 +78,35 @@ public class UserServiceImpl implements UserService {
         return userDTO;
     }
 
-    @Override
     public UserProfile findUserById(String token) {
         Long userIdFromToken;
+
         try {
-            userIdFromToken = jwtService.getUserIdFromToken(token);
+            if (keycloakEnabled) {
+                // decode token Keycloak, lấy preferred_username
+                String username = keycloakJwtDecoder.decode(token).getClaimAsString("preferred_username");
+                UserEntity userEntity = userRepository.findByUsernameAndLockedAndDeleted(username, false, false)
+                        .orElseThrow(() -> new NotFoundException("Không tìm thấy user"));
+                return mapToProfile(userEntity);
+            } else {
+                // decode token nội bộ
+                userIdFromToken = jwtService.getUserIdFromToken(token);
+                UserEntity userEntity = userRepository.findById(userIdFromToken)
+                        .orElseThrow(() -> new NotFoundException("Không tìm thấy user"));
+                return mapToProfile(userEntity);
+            }
         } catch (ParseException e) {
             throw new InvalidTokenException("Token không hợp lệ");
         }
+    }
 
-        UserEntity userEntity = userRepository.findById(userIdFromToken)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy"));
-
+    private UserProfile mapToProfile(UserEntity userEntity) {
         UserProfile profile = new UserProfile();
         profile.setEmail(userEntity.getEmail());
         profile.setFirstName(userEntity.getFirstName());
         profile.setLastName(userEntity.getLastName());
         profile.setPhone(userEntity.getPhone());
         profile.setBirthday(userEntity.getBirthday());
-
         return profile;
     }
 
@@ -149,4 +169,19 @@ public class UserServiceImpl implements UserService {
         userEntity.getRoles().addAll(newRoles);
         userRepository.save(userEntity);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<GrantedAuthority> getAuthoritiesByUsername(String username) {
+        UserEntity user = userRepository.findByUsernameWithRolesAndPermissions(username)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        Set<GrantedAuthority> authorities = new HashSet<>();
+        for (RoleEntity role : user.getRoles()) {
+            authorities.add(new SimpleGrantedAuthority(role.getCode()));
+            role.getPermissions().forEach(p -> authorities.add(new SimpleGrantedAuthority(p.getName())));
+        }
+        return new ArrayList<>(authorities);
+    }
+
 }

@@ -8,6 +8,7 @@ import jakarta.persistence.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class UserRepositoryImpl implements UserRepositoryCustom {
@@ -29,6 +30,23 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
         String sql = "SELECT COUNT(*) FROM users";
         Query query = entityManager.createNativeQuery(sql);
         return ((Number) query.getSingleResult()).longValue();
+    }
+
+    @Override
+    public Optional<UserEntity> findByUsernameWithRolesAndPermissions(String username) {
+        String jpql = "SELECT u FROM UserEntity u " +
+                "LEFT JOIN FETCH u.roles r " +
+                "LEFT JOIN FETCH r.permissions p " +
+                "WHERE u.username = '" + username + "' " +
+                "AND u.locked = false " +
+                "AND u.deleted = false " +
+                "AND (r.deleted = false) " +
+                "AND (p.deleted = false)";
+
+        List<UserEntity> results = entityManager.createQuery(jpql, UserEntity.class)
+                .getResultList();
+
+        return results.stream().findFirst();
     }
 
 }

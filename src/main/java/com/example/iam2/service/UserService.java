@@ -5,6 +5,7 @@ import com.example.iam2.model.dto.UserDTO;
 import com.example.iam2.model.response.PagedResponse;
 import com.example.iam2.model.response.UserDetail;
 import com.example.iam2.model.response.UserProfile;
+import org.springframework.security.core.GrantedAuthority;
 
 import java.util.List;
 
@@ -25,4 +26,7 @@ public interface UserService {
     UserDetail userDetail(Long id);
 
     void assignRoleToUser(AssignRoleDTO assignRoleDTO);
+
+    //Lấy role và permission của user trong database (dùng trong keyloak)
+    List<GrantedAuthority> getAuthoritiesByUsername(String username);
 }
