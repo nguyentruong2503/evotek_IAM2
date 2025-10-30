@@ -37,5 +37,5 @@ public class RoleEntity extends BaseEntity{
             joinColumns = @JoinColumn(name = "role_id"),
             inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
-    private List<PermissionEntity> permissions = new ArrayList<>();
+    private Set<PermissionEntity> permissions = new HashSet<>();
 }

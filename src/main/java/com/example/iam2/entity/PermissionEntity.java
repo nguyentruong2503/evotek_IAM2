@@ -29,6 +29,6 @@ public class PermissionEntity extends BaseEntity {
     private boolean deleted = false;
 
     @ManyToMany(mappedBy = "permissions")
-    private List<RoleEntity> roles = new ArrayList<>();
+    private Set<RoleEntity> roles = new HashSet<>();
 }
 
