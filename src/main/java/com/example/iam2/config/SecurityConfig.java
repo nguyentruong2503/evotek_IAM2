@@ -50,6 +50,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/auth/login",
+                                "api/user/register",
+                                "/auth/login",
+                                "/keycloak/refresh",
                                 "/auth/refresh-token",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",

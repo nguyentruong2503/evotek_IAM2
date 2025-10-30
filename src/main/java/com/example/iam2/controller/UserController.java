@@ -5,6 +5,7 @@ import com.example.iam2.model.dto.UserDTO;
 import com.example.iam2.model.response.PagedResponse;
 import com.example.iam2.model.response.UserDetail;
 import com.example.iam2.model.response.UserProfile;
+import com.example.iam2.service.KeycloakService;
 import com.example.iam2.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,9 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private KeycloakService keycloakService;
+
     @PostMapping("/create")
     @PreAuthorize("hasAuthority('CREATE_USER')")
     public ResponseEntity<?> createUser(@RequestBody UserDTO userDTO) {
@@ -32,6 +36,7 @@ public class UserController {
                         "message", "Thêm mới user thành công!"
                 ));
     }
+
 
     @GetMapping("/me")
     public UserProfile getMyProfile(@RequestHeader("Authorization") String authToken) {
