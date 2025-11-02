@@ -20,4 +20,5 @@ target/
 *.ipr
 
 application.properties
+src/main/resources/keys/
 
